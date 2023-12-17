@@ -9,7 +9,7 @@ from streamlit_lottie import st_lottie
 # ---- OPENAI CONFIG ----
 username = ""
 password = ""
-# openai.api_key = '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'
+# openai.api_key = ''
 # es = Elasticsearch(
 #     ['https://quadrant-observability.es.us-east-1.aws.found.io'],
 #     http_auth=(username, password),
