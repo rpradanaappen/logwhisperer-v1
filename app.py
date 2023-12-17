@@ -11,7 +11,7 @@ username = ""
 password = ""
 # openai.api_key = ''
 # es = Elasticsearch(
-#     ['https://quadrant-observability.es.us-east-1.aws.found.io'],
+#     [''],
 #     http_auth=(username, password),
 #     port=443,
 #     use_ssl=True,
