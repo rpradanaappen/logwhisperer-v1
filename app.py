@@ -9,17 +9,15 @@ from streamlit_lottie import st_lottie
 # ---- OPENAI CONFIG ----
 username = ""
 password = ""
-# openai.api_key = ''
-# es = Elasticsearch(
-#     [''],
-#     http_auth=(username, password),
-#     port=443,
-#     use_ssl=True,
-#     verify_certs=False,
-#     http_compress=True,
-#     scheme='https',
-# )
-
+es = Elasticsearch(
+    [''],
+    http_auth=(username, password),
+    port=443,
+    use_ssl=True,
+    verify_certs=False,
+    http_compress=True,
+    scheme='https',
+)
 result_buffer = []
 
 # ---- FUNCTIONS ----
@@ -47,28 +45,6 @@ def search_elasticsearch(log_group, start_date, end_date):
 
     hits = result['hits']['hits']
     return hits
-
-def generate_summary(message):
-    try:
-        timestamp = message['_source'].get('@timestamp', 'N/A')
-        original_message = message['_source']['message'].strip()
-        max_context_length = 4096
-        truncated_message = original_message[:max_context_length]
-
-        summarizer = Summarizer()
-        summarized_message = summarizer(truncated_message)
-
-        prompt = (
-            f"analyze the following message:\n\n"
-            f"Original Message ({timestamp}): {truncated_message}\n\n"
-            "Your analysis should include 'Error Identification,' 'Root Cause Analysis,' and 'Resolutions.'"
-        )
-
-        result_buffer.append(prompt)
-
-    except Exception as e:
-        st.error(f"Error generating summary from OpenAI: {e}")
-
 
 def process_buffer():
     if result_buffer:
@@ -139,34 +115,80 @@ with st.container():
     st.write("##")
 
     def analyze():
-        # check_elasticsearch_connection()
+        check_elasticsearch_connection()
         start_date_str = start_date.strftime("%Y-%m-%dT00:00:00.000Z")
         end_date_str = (end_date + timedelta(days=1)).strftime("%Y-%m-%dT00:00:00.000Z")
-        # hits = search_elasticsearch(log_group, start_date_str, end_date_str)
+        hits = search_elasticsearch(log_group, start_date_str, end_date_str)
 
-        # for hit in hits:
-        #     generate_summary(hit)
+        for hit in hits:
+            generate_summary(hit)
 
-        # process_buffer()
+        process_buffer()
 
     with st.form("analyze_form"):
+        col1, col2 = st.columns(2, gap="small")
+
+        with col1:
             elasticsearch_index = st.text_input("Elasticsearch Index")
-            col1, col2 = st.columns(2, gap="small")
 
-            with col1:
-                log_group = st.text_input("AWS Cloudwatch Log Group")
+        with col2:
+            log_group = st.text_input("AWS Cloudwatch Log Group")
 
-            with col2:
-                search_query = st.text_input("Search Query")
+        col1, col2 = st.columns(2, gap="small")
 
-            col1, col2 = st.columns(2, gap="small")
+        with col1:
+            start_date = st.date_input("Select Start Date:")
 
-            with col1:
-                start_date = st.date_input("Select Start Date:")
+        with col2:
+            end_date = st.date_input("Select End Date:")
 
-            with col2:
-                end_date = st.date_input("Select End Date:")
+        st.write("")
 
-            st.write("")
+        submitted = st.form_submit_button("Analyze Logs", on_click=analyze)
+            
+    def generate_summary(message):
+        try:
+            timestamp = message['_source'].get('@timestamp', 'N/A')  # Use get to handle missing key
+            original_message = message['_source']['message'].strip()  # Trim whitespace
 
-            submitted = st.form_submit_button("Analyze Logs", on_click=analyze)
+            # Limit the length of the original message to fit within the model's context
+            max_context_length = 4096  # Adjust as needed
+            truncated_message = original_message[:max_context_length]
+
+            # Summarize the truncated log message using extractive summarization
+            # summarizer = Summarizer()
+            # summarized_message = summarizer(truncated_message)
+
+            # Include the summarized message in the prompt for OpenAI
+            prompt = (
+                f"analyze the following message:\n\n"
+                f"Original Message ({timestamp}): {truncated_message}\n\n"
+                "Your analysis should include 'Error Identification,' 'Root Cause Analysis,' and 'Resolutions.'"
+            )
+
+            response = openai.Completion.create(
+                engine="text-davinci-002",
+                prompt=prompt,
+                max_tokens=200,  # Adjust this value as needed
+                temperature=0.5
+            )
+
+            # Check if the response has the expected structure
+            if 'choices' in response and response['choices']:
+                # Ensure the 'text' key is present in the first choice
+                if 'text' in response['choices'][0]:
+                    summary = response['choices'][0]['text']
+
+                    with st.expander("Timestamp: "+timestamp):
+                        st.text("Original Message ("+timestamp+"): "+original_message)
+                        st.write("")
+                        st.text(summary)
+                else:
+                    print(f'Unexpected OpenAI response format: {message}')
+                    print(response)
+            else:
+                print(f'Unexpected OpenAI response format: {message}')
+                print(response)
+                
+        except Exception as e:
+            print(f"Error generating summary from OpenAI: {e}")
