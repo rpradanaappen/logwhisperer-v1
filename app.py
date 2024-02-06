@@ -82,6 +82,7 @@ lottie_bug = load_lottieurl("https://lottie.host/61f952a7-8a6c-4d8c-8ee3-35829f1
 
 #  ---- SIDEBAR ----
 with st.container():
+    openai.api_key = 'sk-BhbewUhwe7273bHGU'
     openai.api_key = st.sidebar.text_input(
         "First, enter your OpenAI API key", type="password"
     )
