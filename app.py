@@ -8,7 +8,7 @@ from streamlit_lottie import st_lottie
 
 # ---- OPENAI CONFIG ----
 username = ""
-password = ""
+password = "123456"
 es = Elasticsearch(
     [''],
     http_auth=(username, password),
