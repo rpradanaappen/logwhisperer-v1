@@ -1,6 +1,6 @@
 elasticsearch==7.17.9
 openai==0.27.2
 Requests==2.31.0
-streamlit==1.29.0
+streamlit==1.37.0
 streamlit_lottie==0.0.5
 summarizer==0.0.7
