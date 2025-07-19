@@ -4,3 +4,4 @@ Requests==2.31.0
 streamlit==1.29.0
 streamlit_lottie==0.0.5
 summarizer==0.0.7
+aiohttp>=3.12.14 # not directly required, pinned by Snyk to avoid a vulnerability
